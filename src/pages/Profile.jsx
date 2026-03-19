@@ -32,6 +32,11 @@ const Profile = () => {
   const [loadingFollowers, setLoadingFollowers] = useState(false);
   const [loadingFollowing, setLoadingFollowing] = useState(false);
 
+  // Pagination state for posts
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [totalPosts, setTotalPosts] = useState(0);
+
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
@@ -75,11 +80,38 @@ const Profile = () => {
     }
   };
 
-  const loadMyPosts = async () => {
+  const loadMyPosts = async (page = 1, reset = false) => {
+    if (loadingPosts) return;
+
     setLoadingPosts(true);
-    const res = await fetchMyPosts(token);
-    setMyPosts(res.data);
-    setLoadingPosts(false);
+    try {
+      const res = await axios.get(
+        `${URL}/api/posts/?page=${page}&limit=10`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const { posts, hasMore, totalPosts: total } = res.data;
+
+      if (reset || page === 1) {
+        setMyPosts(posts || res.data);
+      } else {
+        setMyPosts((prev) => [...prev, ...(posts || [])]);
+      }
+
+      setCurrentPage(page);
+      setHasMorePosts(hasMore);
+      setTotalPosts(total || posts?.length || 0);
+    } catch (err) {
+      console.error("Error loading posts:", err);
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
+
+  const loadMorePosts = () => {
+    if (hasMorePosts && !loadingPosts) {
+      loadMyPosts(currentPage + 1, false);
+    }
   };
 
   const loadFollowers = async () => {
@@ -98,14 +130,14 @@ const Profile = () => {
 
   const handleDelete = async (id) => {
     await deletePost(id, token);
-    loadMyPosts();
+    loadMyPosts(1, true);
   };
 
   const handleEdit = async (id) => {
     await editPost(id, editedCaption, token);
     setEditingPostId(null);
     setEditedCaption("");
-    loadMyPosts();
+    loadMyPosts(1, true);
   };
 
   const handleLikeToggle = async (postId) => {
@@ -129,11 +161,31 @@ const Profile = () => {
 
   useEffect(() => {
     if (isLoggedIn) {
-      loadMyPosts();
+      loadMyPosts(1, true);
       loadFollowers();
       loadFollowing();
     }
   }, [isLoggedIn]);
+
+  // Infinite scroll effect for Posts tab
+  useEffect(() => {
+    if (activeTab !== "Posts") return;
+
+    const handleScroll = () => {
+      if (loadingPosts || !hasMorePosts) return;
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
+        loadMorePosts();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadingPosts, hasMorePosts, currentPage, activeTab]);
 
   if (!isLoggedIn) {
     return (
@@ -271,7 +323,7 @@ const Profile = () => {
               <div className="flex flex-wrap gap-6 text-sm">
                 <div className="text-center">
                   <div className="font-bold text-xl text-gray-900">
-                    {myPosts.length}
+                    {totalPosts}
                   </div>
                   <div className="text-gray-600">Posts</div>
                 </div>
@@ -336,7 +388,7 @@ const Profile = () => {
         <div className="p-6">
           {activeTab === "Posts" && (
             <div className="space-y-4">
-              {loadingPosts ? (
+              {loadingPosts && myPosts.length === 0 ? (
                 <Spinner />
               ) : myPosts.length === 0 ? (
                 <div className="text-center py-12">
@@ -359,23 +411,59 @@ const Profile = () => {
                   </p>
                 </div>
               ) : (
-                myPosts.map((post) => (
-                  <PostCard
-                    key={post._id}
-                    post={post}
-                    onLike={() => handleLikeToggle(post._id)}
-                    onEdit={() => {
-                      setEditingPostId(post._id);
-                      setEditedCaption(post.caption);
-                    }}
-                    onDelete={() => handleDelete(post._id)}
-                    isEditing={editingPostId === post._id}
-                    editedCaption={editedCaption}
-                    setEditedCaption={setEditedCaption}
-                    saveEdit={() => handleEdit(post._id)}
-                    cancelEdit={() => setEditingPostId(null)}
-                  />
-                ))
+                <>
+                  {myPosts.map((post) => (
+                    <PostCard
+                      key={post._id}
+                      post={post}
+                      onLike={() => handleLikeToggle(post._id)}
+                      onEdit={() => {
+                        setEditingPostId(post._id);
+                        setEditedCaption(post.caption);
+                      }}
+                      onDelete={() => handleDelete(post._id)}
+                      isEditing={editingPostId === post._id}
+                      editedCaption={editedCaption}
+                      setEditedCaption={setEditedCaption}
+                      saveEdit={() => handleEdit(post._id)}
+                      cancelEdit={() => setEditingPostId(null)}
+                    />
+                  ))}
+
+                  {/* Loading indicator for infinite scroll */}
+                  {loadingPosts && myPosts.length > 0 && (
+                    <div className="flex justify-center items-center py-8">
+                      <svg
+                        className="animate-spin h-8 w-8 text-blue-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"
+                        />
+                      </svg>
+                    </div>
+                  )}
+
+                  {/* End of posts message */}
+                  {!hasMorePosts && myPosts.length > 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 font-medium">
+                        You've reached the end! Showing all {myPosts.length} posts.
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
