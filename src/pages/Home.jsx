@@ -38,7 +38,7 @@ const Home = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
-  const postsPerPage = 5;
+  const postsPerPage = 10;
 
   // Following state
   const [followingStatus, setFollowingStatus] = useState({}); // Track follow status by userId
@@ -668,6 +668,24 @@ const Home = () => {
     if (isLoggedIn) fetchFeedPosts(1, true);
   }, [isLoggedIn]);
 
+  // Infinite scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loading || !hasMore) return;
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
+        loadMorePosts();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loading, hasMore, currentPage]);
+
   if (!isLoggedIn)
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1255,75 +1273,37 @@ const Home = () => {
             ))
           )}
 
-          {/* Pagination Controls */}
-          {posts.length > 0 && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              {/* Load More Button */}
-              {hasMore && (
-                <button
-                  onClick={loadMorePosts}
-                  disabled={loading}
-                  className="inline-flex cursor-pointer items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  {loading ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-5 h-5 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                        />
-                      </svg>
-                      Load More Posts
-                    </>
-                  )}
-                </button>
-              )}
+          {/* Loading indicator for infinite scroll */}
+          {loading && posts.length > 0 && (
+            <div className="flex justify-center items-center py-8">
+              <svg
+                className="animate-spin h-8 w-8 text-blue-600"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"
+                />
+              </svg>
+            </div>
+          )}
 
-              {/* Pagination Info
-              <div className="text-sm text-gray-500">
-                {!hasMore && posts.length > 0 && (
-                  <p>
-                    You've reached the end! Showing all {posts.length} posts.
-                  </p>
-                )}
-                {hasMore && posts.length > 0 && (
-                  <p>
-                    Showing {posts.length} posts • Page {currentPage} of{" "}
-                    {totalPages}
-                  </p>
-                )}
-              </div> */}
+          {/* End of feed message */}
+          {!hasMore && posts.length > 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500 font-medium">
+                You've reached the end! Showing all {posts.length} posts.
+              </p>
             </div>
           )}
         </div>
