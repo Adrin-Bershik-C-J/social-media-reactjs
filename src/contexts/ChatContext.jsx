@@ -102,15 +102,23 @@ export const ChatProvider = ({ children }) => {
 
     // Online/offline presence
     socket.on("user:online", ({ userId }) => {
+      console.log("User came online:", userId);
       setOnlineUsers((prev) => new Set([...prev, userId]));
     });
 
     socket.on("user:offline", ({ userId }) => {
+      console.log("User went offline:", userId);
       setOnlineUsers((prev) => {
         const updated = new Set(prev);
         updated.delete(userId);
         return updated;
       });
+    });
+
+    // Receive initial list of online users
+    socket.on("users:online", ({ userIds }) => {
+      console.log("Received online users list:", userIds);
+      setOnlineUsers(new Set(userIds));
     });
 
     return () => {
@@ -119,6 +127,7 @@ export const ChatProvider = ({ children }) => {
       socket.off("chat:typing");
       socket.off("user:online");
       socket.off("user:offline");
+      socket.off("users:online");
     };
   }, [socket, isLoggedIn, activeConversation, user?.id]);
 
