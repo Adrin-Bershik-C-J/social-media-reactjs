@@ -3,7 +3,8 @@ import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useNotifications } from "../contexts/NotificationContext";
-import { Bell } from "lucide-react"; // or your preferred icon lib
+import { useChat } from "../contexts/ChatContext";
+import { Bell, MessageCircle } from "lucide-react";
 import config from "../config";
 const URL = config.API_URL;
 
@@ -47,6 +48,7 @@ const Home = () => {
   const token = localStorage.getItem("token");
 
   const { unreadCount } = useNotifications();
+  const { totalUnreadCount } = useChat();
 
   // Initialize following status from user data
   useEffect(() => {
@@ -717,8 +719,21 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Right side: Bell + Profile */}
+          {/* Right side: Chat + Bell + Profile */}
           <div className="flex items-center gap-4 self-end sm:self-auto">
+            <Link to="/chat" className="relative">
+              <MessageCircle className="w-6 h-6 text-gray-700" />
+              {totalUnreadCount > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs
+                         font-semibold w-5 h-5 flex items-center justify-center
+                         rounded-full"
+                >
+                  {totalUnreadCount > 9 ? "9+" : totalUnreadCount}
+                </span>
+              )}
+            </Link>
+
             <Link to="/notifications" className="relative">
               <Bell className="w-6 h-6 text-gray-700" />
               {unreadCount > 0 && (
