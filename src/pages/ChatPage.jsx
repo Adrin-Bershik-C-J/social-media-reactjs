@@ -1,12 +1,13 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useChat } from "../contexts/ChatContext";
 import ConversationList from "../components/chat/ConversationList";
 import ChatWindow from "../components/chat/ChatWindow";
 
 const ChatPage = () => {
   const navigate = useNavigate();
-  const { setActiveConversation, totalUnreadCount } = useChat();
+  const { conversationId } = useParams();
+  const { setActiveConversation, activeConversation, totalUnreadCount } = useChat();
 
   const handleSelectConversation = (conversation) => {
     setActiveConversation(conversation);
@@ -46,13 +47,17 @@ const ChatPage = () => {
 
       {/* Two-panel layout */}
       <div className="flex h-[calc(100vh-73px)]">
-        {/* Left panel - Conversations */}
-        <div className="w-full md:w-1/3 lg:w-1/4 bg-white border-r border-gray-200 overflow-hidden">
+        {/* Left panel - Conversations (hidden on mobile when chat is active) */}
+        <div className={`w-full md:w-1/3 lg:w-1/4 bg-white border-r border-gray-200 overflow-hidden ${
+          activeConversation ? "hidden md:block" : "block"
+        }`}>
           <ConversationList onSelectConversation={handleSelectConversation} />
         </div>
 
-        {/* Right panel - Chat window */}
-        <div className="hidden md:flex md:w-2/3 lg:w-3/4 bg-gray-50">
+        {/* Right panel - Chat window (full width on mobile when active) */}
+        <div className={`w-full md:w-2/3 lg:w-3/4 bg-gray-50 ${
+          activeConversation ? "block" : "hidden md:block"
+        }`}>
           <ChatWindow />
         </div>
       </div>

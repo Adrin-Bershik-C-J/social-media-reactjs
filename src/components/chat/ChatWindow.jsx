@@ -7,6 +7,7 @@ import TypingIndicator from "./TypingIndicator";
 const ChatWindow = () => {
   const {
     activeConversation,
+    setActiveConversation,
     messages,
     fetchMessages,
     sendMessage,
@@ -107,6 +108,26 @@ const ChatWindow = () => {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-gray-200 bg-white">
+        {/* Back button for mobile */}
+        <button
+          onClick={() => setActiveConversation(null)}
+          className="md:hidden text-gray-600 hover:text-gray-900"
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
+          </svg>
+        </button>
+
         <div className="relative">
           {otherUser?.profilePicture ? (
             <img
