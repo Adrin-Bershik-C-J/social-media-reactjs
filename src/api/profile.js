@@ -10,13 +10,13 @@ const API = axios.create({
 export const fetchMyPosts = (token) =>
   API.get("/posts/", { headers: { Authorization: `Bearer ${token}` } });
 
-export const fetchFollowers = (token) =>
-  API.get("/users/followers", {
+export const fetchFollowers = (token, page = 1, limit = 10) =>
+  API.get(`/users/followers?page=${page}&limit=${limit}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-export const fetchFollowing = (token) =>
-  API.get("/users/following", {
+export const fetchFollowing = (token, page = 1, limit = 10) =>
+  API.get(`/users/following?page=${page}&limit=${limit}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 

@@ -37,6 +37,16 @@ const Profile = () => {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [totalPosts, setTotalPosts] = useState(0);
 
+  // Pagination state for followers
+  const [followersPage, setFollowersPage] = useState(1);
+  const [hasMoreFollowers, setHasMoreFollowers] = useState(true);
+  const [totalFollowers, setTotalFollowers] = useState(0);
+
+  // Pagination state for following
+  const [followingPage, setFollowingPage] = useState(1);
+  const [hasMoreFollowing, setHasMoreFollowing] = useState(true);
+  const [totalFollowing, setTotalFollowing] = useState(0);
+
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
@@ -114,18 +124,64 @@ const Profile = () => {
     }
   };
 
-  const loadFollowers = async () => {
+  const loadFollowers = async (page = 1, reset = false) => {
+    if (loadingFollowers) return;
+
     setLoadingFollowers(true);
-    const res = await fetchFollowers(token);
-    setFollowers(res.data);
-    setLoadingFollowers(false);
+    try {
+      const res = await fetchFollowers(token, page, 10);
+      const { followers: newFollowers, hasMore, totalFollowers: total } = res.data;
+
+      if (reset || page === 1) {
+        setFollowers(newFollowers);
+      } else {
+        setFollowers((prev) => [...prev, ...newFollowers]);
+      }
+
+      setFollowersPage(page);
+      setHasMoreFollowers(hasMore);
+      setTotalFollowers(total);
+    } catch (err) {
+      console.error("Error loading followers:", err);
+    } finally {
+      setLoadingFollowers(false);
+    }
   };
 
-  const loadFollowing = async () => {
+  const loadMoreFollowers = () => {
+    if (hasMoreFollowers && !loadingFollowers) {
+      loadFollowers(followersPage + 1, false);
+    }
+  };
+
+  const loadFollowing = async (page = 1, reset = false) => {
+    if (loadingFollowing) return;
+
     setLoadingFollowing(true);
-    const res = await fetchFollowing(token);
-    setFollowing(res.data);
-    setLoadingFollowing(false);
+    try {
+      const res = await fetchFollowing(token, page, 10);
+      const { following: newFollowing, hasMore, totalFollowing: total } = res.data;
+
+      if (reset || page === 1) {
+        setFollowing(newFollowing);
+      } else {
+        setFollowing((prev) => [...prev, ...newFollowing]);
+      }
+
+      setFollowingPage(page);
+      setHasMoreFollowing(hasMore);
+      setTotalFollowing(total);
+    } catch (err) {
+      console.error("Error loading following:", err);
+    } finally {
+      setLoadingFollowing(false);
+    }
+  };
+
+  const loadMoreFollowing = () => {
+    if (hasMoreFollowing && !loadingFollowing) {
+      loadFollowing(followingPage + 1, false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -162,8 +218,8 @@ const Profile = () => {
   useEffect(() => {
     if (isLoggedIn) {
       loadMyPosts(1, true);
-      loadFollowers();
-      loadFollowing();
+      loadFollowers(1, true);
+      loadFollowing(1, true);
     }
   }, [isLoggedIn]);
 
@@ -186,6 +242,46 @@ const Profile = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [loadingPosts, hasMorePosts, currentPage, activeTab]);
+
+  // Infinite scroll effect for Followers tab
+  useEffect(() => {
+    if (activeTab !== "Followers") return;
+
+    const handleScroll = () => {
+      if (loadingFollowers || !hasMoreFollowers) return;
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
+        loadMoreFollowers();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadingFollowers, hasMoreFollowers, followersPage, activeTab]);
+
+  // Infinite scroll effect for Following tab
+  useEffect(() => {
+    if (activeTab !== "Following") return;
+
+    const handleScroll = () => {
+      if (loadingFollowing || !hasMoreFollowing) return;
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
+        loadMoreFollowing();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadingFollowing, hasMoreFollowing, followingPage, activeTab]);
 
   if (!isLoggedIn) {
     return (
@@ -329,13 +425,13 @@ const Profile = () => {
                 </div>
                 <div className="text-center">
                   <div className="font-bold text-xl text-gray-900">
-                    {followers.length}
+                    {totalFollowers}
                   </div>
                   <div className="text-gray-600">Followers</div>
                 </div>
                 <div className="text-center">
                   <div className="font-bold text-xl text-gray-900">
-                    {following.length}
+                    {totalFollowing}
                   </div>
                   <div className="text-gray-600">Following</div>
                 </div>
@@ -470,36 +566,108 @@ const Profile = () => {
 
           {activeTab === "Followers" && (
             <>
-              {loadingFollowers ? (
+              {loadingFollowers && followers.length === 0 ? (
                 <Spinner />
               ) : followers.length === 0 ? (
                 <p className="text-gray-500 text-center py-4">
                   No followers yet.
                 </p>
               ) : (
-                <div className="space-y-4">
-                  {followers.map((f) => (
-                    <UserCard key={f._id} user={f} />
-                  ))}
-                </div>
+                <>
+                  <div className="space-y-4">
+                    {followers.map((f) => (
+                      <UserCard key={f._id} user={f} />
+                    ))}
+                  </div>
+
+                  {/* Loading indicator */}
+                  {loadingFollowers && followers.length > 0 && (
+                    <div className="flex justify-center items-center py-8">
+                      <svg
+                        className="animate-spin h-8 w-8 text-blue-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"
+                        />
+                      </svg>
+                    </div>
+                  )}
+
+                  {/* End message */}
+                  {!hasMoreFollowers && followers.length > 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 font-medium">
+                        Showing all {followers.length} followers.
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
 
           {activeTab === "Following" && (
             <>
-              {loadingFollowing ? (
+              {loadingFollowing && following.length === 0 ? (
                 <Spinner />
               ) : following.length === 0 ? (
                 <p className="text-gray-500 text-center py-4">
                   No following users yet.
                 </p>
               ) : (
-                <div className="space-y-4">
-                  {following.map((f) => (
-                    <UserCard key={f._id} user={f} />
-                  ))}
-                </div>
+                <>
+                  <div className="space-y-4">
+                    {following.map((f) => (
+                      <UserCard key={f._id} user={f} />
+                    ))}
+                  </div>
+
+                  {/* Loading indicator */}
+                  {loadingFollowing && following.length > 0 && (
+                    <div className="flex justify-center items-center py-8">
+                      <svg
+                        className="animate-spin h-8 w-8 text-blue-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"
+                        />
+                      </svg>
+                    </div>
+                  )}
+
+                  {/* End message */}
+                  {!hasMoreFollowing && following.length > 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 font-medium">
+                        Showing all {following.length} following.
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
