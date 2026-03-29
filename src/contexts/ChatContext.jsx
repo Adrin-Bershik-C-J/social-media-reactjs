@@ -26,7 +26,7 @@ export const useChat = () => {
 
 export const ChatProvider = ({ children }) => {
   const [conversations, setConversations] = useState([]);
-  const [activeConversation, setActiveConversation] = useState(null);
+  const [activeConversation, setActiveConversationState] = useState(null);
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [typingUsers, setTypingUsers] = useState({}); // { conversationId: userId }
@@ -35,6 +35,12 @@ export const ChatProvider = ({ children }) => {
   const { user, isLoggedIn } = useAuth();
   const { socket } = useNotifications(); // Reuse the same socket from NotificationContext
   const token = localStorage.getItem("token");
+
+  // Wrapper to clear messages when changing conversation
+  const setActiveConversation = (conversation) => {
+    setMessages([]); // Clear messages when switching conversations
+    setActiveConversationState(conversation);
+  };
 
   // Listen for socket events
   useEffect(() => {

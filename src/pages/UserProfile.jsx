@@ -12,7 +12,7 @@ const UserProfile = () => {
   const { username } = useParams();
   const navigate = useNavigate();
   const { user: loggedInUser, isLoggedIn } = useAuth();
-  const { sendMessage } = useChat();
+  const { sendMessage, conversations, setActiveConversation } = useChat();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
@@ -69,6 +69,52 @@ const UserProfile = () => {
       console.error("Error following user:", err);
     } finally {
       setFollowLoading(false);
+    }
+  };
+
+  const handleStartChat = async () => {
+    try {
+      // Find or create a conversation without sending a message
+      const currentUserId = loggedInUser._id || loggedInUser.id;
+      const participants = [currentUserId, userData._id].sort();
+      
+      // Check if conversation already exists
+      const existingConv = conversations.find(conv => {
+        const convParticipants = conv.participants.map(p => p._id).sort();
+        return convParticipants[0] === participants[0] && convParticipants[1] === participants[1];
+      });
+
+      if (existingConv) {
+        setActiveConversation(existingConv);
+      } else {
+        // Create a temporary conversation object
+        const tempConv = {
+          _id: `temp-${Date.now()}`,
+          participants: [
+            { 
+              _id: currentUserId, 
+              name: loggedInUser.name, 
+              username: loggedInUser.username, 
+              profilePicture: loggedInUser.profilePicture 
+            },
+            { 
+              _id: userData._id, 
+              name: userData.name, 
+              username: userData.username, 
+              profilePicture: userData.profilePicture 
+            }
+          ],
+          lastMessage: null,
+          unreadCount: 0,
+          isTemp: true
+        };
+        setActiveConversation(tempConv);
+      }
+      
+      navigate("/chat");
+    } catch (error) {
+      console.error("Failed to start chat:", error);
+      console.error("Error details:", error.message);
     }
   };
 
@@ -228,7 +274,7 @@ const UserProfile = () => {
                 )}
               </button>
               <button
-                onClick={() => navigate("/chat")}
+                onClick={handleStartChat}
                 className="px-4 py-2 cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-full text-sm font-medium transition-colors duration-200"
               >
                 Message

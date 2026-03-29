@@ -34,7 +34,7 @@ const ConversationList = ({ onSelectConversation }) => {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
-      {conversations.map((conv) => {
+      {conversations.filter(conv => !conv.isTemp).map((conv) => {
         const otherUser = getOtherUser(conv.participants);
         const isActive = activeConversation?._id === conv._id;
         const isOnline = onlineUsers.has(otherUser?._id);

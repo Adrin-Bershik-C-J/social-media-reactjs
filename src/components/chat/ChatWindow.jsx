@@ -24,7 +24,7 @@ const ChatWindow = () => {
   const typingTimeoutRef = useRef(null);
 
   const otherUser = activeConversation?.participants.find(
-    (p) => p._id !== user.id
+    (p) => p._id !== (user._id || user.id)
   );
   const isOnline = onlineUsers.has(otherUser?._id);
   const isOtherUserTyping = typingUsers[activeConversation?._id] === otherUser?._id;
@@ -36,7 +36,7 @@ const ChatWindow = () => {
 
   // Fetch messages when conversation changes
   useEffect(() => {
-    if (activeConversation) {
+    if (activeConversation && !activeConversation.isTemp) {
       fetchMessages(activeConversation._id);
       markAsRead(activeConversation._id);
     }
@@ -63,7 +63,13 @@ const ChatWindow = () => {
 
     setIsSending(true);
     try {
-      await sendMessage(otherUser._id, inputText.trim());
+      const result = await sendMessage(otherUser._id, inputText.trim());
+      
+      // If this was a temp conversation, update it with the real one
+      if (activeConversation.isTemp && result?.conversation) {
+        setActiveConversation(result.conversation);
+      }
+      
       setInputText("");
       setIsTyping(false);
       sendTypingIndicator(otherUser._id, activeConversation._id, false);
@@ -158,7 +164,7 @@ const ChatWindow = () => {
           <MessageBubble
             key={msg._id}
             message={msg}
-            isOwn={msg.sender._id === user.id}
+            isOwn={msg.sender._id === (user._id || user.id)}
           />
         ))}
         {isOtherUserTyping && <TypingIndicator />}
