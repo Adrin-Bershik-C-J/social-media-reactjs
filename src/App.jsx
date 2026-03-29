@@ -8,6 +8,7 @@ import PrivateRoute from "./components/PrivateRoute";
 import UserProfile from "./pages/UserProfile";
 import NotificationsPage from "./pages/NotificationsPage";
 import PostPage from "./pages/PostPage";
+import ChatPage from "./pages/ChatPage";
 
 function App() {
   return (
@@ -34,6 +35,14 @@ function App() {
         <Route path="/user/:username" element={<UserProfile />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/post/:id" element={<PostPage />} />
+        <Route
+          path="/chat"
+          element={
+            <PrivateRoute>
+              <ChatPage />
+            </PrivateRoute>
+          }
+        />
         {/* 👇 Catch-all route */}
         <Route path="*" element={<NotFound />} />
       </Routes>

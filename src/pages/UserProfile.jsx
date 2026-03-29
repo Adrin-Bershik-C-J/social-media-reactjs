@@ -1,8 +1,8 @@
-// src/pages/UserProfile.jsx
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
+import { useChat } from "../contexts/ChatContext";
 import config from "../config";
 import PostCard from "../components/PostCard";
 
@@ -10,7 +10,9 @@ const URL = config.API_URL;
 
 const UserProfile = () => {
   const { username } = useParams();
+  const navigate = useNavigate();
   const { user: loggedInUser, isLoggedIn } = useAuth();
+  const { sendMessage, conversations, setActiveConversation } = useChat();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
@@ -67,6 +69,52 @@ const UserProfile = () => {
       console.error("Error following user:", err);
     } finally {
       setFollowLoading(false);
+    }
+  };
+
+  const handleStartChat = async () => {
+    try {
+      // Find or create a conversation without sending a message
+      const currentUserId = loggedInUser._id || loggedInUser.id;
+      const participants = [currentUserId, userData._id].sort();
+      
+      // Check if conversation already exists
+      const existingConv = conversations.find(conv => {
+        const convParticipants = conv.participants.map(p => p._id).sort();
+        return convParticipants[0] === participants[0] && convParticipants[1] === participants[1];
+      });
+
+      if (existingConv) {
+        setActiveConversation(existingConv);
+      } else {
+        // Create a temporary conversation object
+        const tempConv = {
+          _id: `temp-${Date.now()}`,
+          participants: [
+            { 
+              _id: currentUserId, 
+              name: loggedInUser.name, 
+              username: loggedInUser.username, 
+              profilePicture: loggedInUser.profilePicture 
+            },
+            { 
+              _id: userData._id, 
+              name: userData.name, 
+              username: userData.username, 
+              profilePicture: userData.profilePicture 
+            }
+          ],
+          lastMessage: null,
+          unreadCount: 0,
+          isTemp: true
+        };
+        setActiveConversation(tempConv);
+      }
+      
+      navigate("/chat");
+    } catch (error) {
+      console.error("Failed to start chat:", error);
+      console.error("Error details:", error.message);
     }
   };
 
@@ -187,43 +235,51 @@ const UserProfile = () => {
           </div>
 
           {loggedInUser?.id !== userData._id && isLoggedIn && (
-            <button
-              onClick={handleFollowToggle}
-              disabled={followLoading}
-              className={`mt-4 px-4 py-2 cursor-pointer rounded-full text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={handleFollowToggle}
+                disabled={followLoading}
+                className={`px-4 py-2 cursor-pointer rounded-full text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
               ${
                 isFollowing
                   ? "bg-gray-200 text-gray-700"
                   : "bg-blue-600 text-white hover:bg-blue-700"
               }
               disabled:opacity-60 disabled:cursor-wait`}
-            >
-              {followLoading ? (
-                <svg
-                  className="animate-spin h-4 w-4 text-current mx-auto"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"
-                  />
-                </svg>
-              ) : isFollowing ? (
-                "Following"
-              ) : (
-                "Follow"
-              )}
-            </button>
+              >
+                {followLoading ? (
+                  <svg
+                    className="animate-spin h-4 w-4 text-current mx-auto"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"
+                    />
+                  </svg>
+                ) : isFollowing ? (
+                  "Following"
+                ) : (
+                  "Follow"
+                )}
+              </button>
+              <button
+                onClick={handleStartChat}
+                className="px-4 py-2 cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-full text-sm font-medium transition-colors duration-200"
+              >
+                Message
+              </button>
+            </div>
           )}
         </div>
       </div>
