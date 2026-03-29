@@ -40,6 +40,13 @@ export const ChatProvider = ({ children }) => {
   const setActiveConversation = (conversation) => {
     setMessages([]); // Clear messages when switching conversations
     setActiveConversationState(conversation);
+    
+    // Mark as read when opening a conversation
+    if (conversation && !conversation.isTemp) {
+      setTimeout(() => {
+        markAsRead(conversation._id);
+      }, 100);
+    }
   };
 
   // Listen for socket events
@@ -60,7 +67,7 @@ export const ChatProvider = ({ children }) => {
                     lastMessage: message,
                     updatedAt: conversation.updatedAt,
                     unreadCount:
-                      message.sender._id !== user.id
+                      message.sender._id !== user.id && activeConversation?._id !== conversation._id
                         ? (c.unreadCount || 0) + 1
                         : c.unreadCount || 0,
                   }
@@ -75,10 +82,12 @@ export const ChatProvider = ({ children }) => {
       // If the message is for the active conversation, add it to messages
       if (activeConversation?._id === message.conversation) {
         setMessages((prev) => [...prev, message]);
+        // Automatically mark as read since user is viewing this conversation
+        markAsRead(message.conversation);
       }
 
-      // Update total unread count
-      if (message.sender._id !== user.id) {
+      // Update total unread count only if not in active conversation
+      if (message.sender._id !== user.id && activeConversation?._id !== message.conversation) {
         setTotalUnreadCount((prev) => prev + 1);
       }
     });
