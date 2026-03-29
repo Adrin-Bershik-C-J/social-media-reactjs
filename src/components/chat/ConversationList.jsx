@@ -42,7 +42,12 @@ const ConversationList = ({ onSelectConversation }) => {
         return (
           <div
             key={conv._id}
-            onClick={() => onSelectConversation(conv)}
+            onClick={() => {
+              // Only change conversation if it's not already active
+              if (activeConversation?._id !== conv._id) {
+                onSelectConversation(conv);
+              }
+            }}
             className={`flex items-center gap-3 p-4 cursor-pointer border-b border-gray-200 hover:bg-gray-50 transition ${
               isActive ? "bg-blue-50" : ""
             }`}
