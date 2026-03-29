@@ -31,9 +31,27 @@ export const NotificationProvider = ({ children }) => {
 
   const token = localStorage.getItem("token");
 
+  // Disconnect socket function
+  const disconnectSocket = useCallback(() => {
+    if (socket) {
+      console.log("Manually disconnecting socket...");
+      socket.emit("user:disconnect");
+      socket.disconnect();
+      setSocket(null);
+    }
+  }, [socket]);
+
   // Initialize socket connection
   useEffect(() => {
-    if (!isLoggedIn || !user?.id) return;
+    if (!isLoggedIn || !user?.id) {
+      // Disconnect socket if user logs out
+      if (socket) {
+        socket.emit("user:disconnect");
+        socket.disconnect();
+        setSocket(null);
+      }
+      return;
+    }
 
     const socketInstance = io(config.API_URL, {
       query: { userId: user.id },
@@ -61,7 +79,17 @@ export const NotificationProvider = ({ children }) => {
       }
     });
 
+    // Handle browser close/refresh
+    const handleBeforeUnload = () => {
+      socketInstance.emit("user:disconnect");
+      socketInstance.disconnect();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // Cleanup on unmount or logout
     return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      socketInstance.emit("user:disconnect");
       socketInstance.disconnect();
     };
   }, [isLoggedIn, user?.id, token]);
@@ -173,6 +201,7 @@ export const NotificationProvider = ({ children }) => {
     markAllRead,
     markAsRead,
     socket,
+    disconnectSocket,
   };
 
   return (
