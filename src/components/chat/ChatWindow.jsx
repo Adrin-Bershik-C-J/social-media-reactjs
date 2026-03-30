@@ -20,6 +20,7 @@ const ChatWindow = () => {
   const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const inputRef = useRef(null);
@@ -37,10 +38,21 @@ const ChatWindow = () => {
 
   // Fetch messages when conversation changes
   useEffect(() => {
-    if (activeConversation && !activeConversation.isTemp) {
-      fetchMessages(activeConversation._id);
-      markAsRead(activeConversation._id);
-    }
+    const loadMessages = async () => {
+      if (activeConversation && !activeConversation.isTemp) {
+        setIsLoadingMessages(true);
+        try {
+          await fetchMessages(activeConversation._id);
+          await markAsRead(activeConversation._id);
+        } finally {
+          setIsLoadingMessages(false);
+        }
+      } else {
+        setIsLoadingMessages(false);
+      }
+    };
+    
+    loadMessages();
   }, [activeConversation?._id]);
 
   // Handle typing indicator
@@ -166,15 +178,42 @@ const ChatWindow = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-        {messages.map((msg) => (
-          <MessageBubble
-            key={msg._id}
-            message={msg}
-            isOwn={msg.sender._id === (user._id || user.id)}
-          />
-        ))}
-        {isOtherUserTyping && <TypingIndicator />}
-        <div ref={messagesEndRef} />
+        {isLoadingMessages ? (
+          <div className="flex flex-col items-center justify-center h-full">
+            <svg
+              className="animate-spin h-10 w-10 text-blue-600 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"
+              />
+            </svg>
+            <p className="text-gray-500 font-medium">Loading messages...</p>
+          </div>
+        ) : (
+          <>
+            {messages.map((msg) => (
+              <MessageBubble
+                key={msg._id}
+                message={msg}
+                isOwn={msg.sender._id === (user._id || user.id)}
+              />
+            ))}
+            {isOtherUserTyping && <TypingIndicator />}
+            <div ref={messagesEndRef} />
+          </>
+        )}
       </div>
 
       {/* Input */}
