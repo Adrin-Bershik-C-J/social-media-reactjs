@@ -22,6 +22,7 @@ const ChatWindow = () => {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const inputRef = useRef(null);
 
   const otherUser = activeConversation?.participants.find(
     (p) => p._id !== (user._id || user.id)
@@ -74,6 +75,11 @@ const ChatWindow = () => {
       setIsTyping(false);
       sendTypingIndicator(otherUser._id, activeConversation._id, false);
       clearTimeout(typingTimeoutRef.current);
+      
+      // Keep focus on input after sending
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
     } catch (error) {
       console.error("Failed to send message:", error);
     } finally {
@@ -175,6 +181,7 @@ const ChatWindow = () => {
       <div className="p-4 border-t border-gray-200 bg-white">
         <div className="flex gap-2">
           <input
+            ref={inputRef}
             type="text"
             value={inputText}
             onChange={handleInputChange}
