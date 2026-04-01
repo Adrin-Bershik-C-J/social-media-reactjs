@@ -24,7 +24,7 @@ const ChatPage = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate("/home")}
-            className="text-gray-600 hover:text-gray-900"
+            className="text-gray-600 hover:text-gray-900 cursor-pointer"
           >
             <svg
               className="w-6 h-6"
