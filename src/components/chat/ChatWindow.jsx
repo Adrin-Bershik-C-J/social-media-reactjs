@@ -135,7 +135,7 @@ const ChatWindow = () => {
         {/* Back button for mobile */}
         <button
           onClick={() => setActiveConversation(null)}
-          className="md:hidden text-gray-600 hover:text-gray-900"
+          className="md:hidden text-gray-600 hover:text-gray-900 cursor-pointer"
         >
           <svg
             className="w-6 h-6"
