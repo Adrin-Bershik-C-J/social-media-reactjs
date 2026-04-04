@@ -74,7 +74,7 @@ const UserCard = ({ user }) => {
       {!isOwnProfile && (
         <button
           onClick={handleStartChat}
-          className="px-3 py-1 bg-blue-600 text-white hover:bg-blue-700 rounded-full text-sm font-medium transition-colors duration-200"
+          className="px-3 py-1 bg-blue-600 text-white hover:bg-blue-700 rounded-full text-sm font-medium transition-colors duration-200 cursor-pointer"
         >
           Message
         </button>
